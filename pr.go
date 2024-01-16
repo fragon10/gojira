@@ -17,7 +17,7 @@ func createPullReq(issueID, issueTitle, branchName string) {
 	}
 
 	if len(output) == 0 {
-		templatePath := filepath.Join(".github", "gojira_template.md")
+		templatePath := filepath.Join(".github", "pr_template.md")
 		title := fmt.Sprintf("%s: %s", issueID, issueTitle)
 		createPrCmd := exec.Command("gh", "pr", "create", "-d", "-t", title)
 		body := ""

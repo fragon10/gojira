@@ -133,7 +133,22 @@ func createCommit(issueID string, issueTitle string, branchName string, parent [
 		if err != nil {
 			log.Fatal(err)
 		}
+		setRemoteUpstream(issueID, issueTitle, branchName)
+	}
+}
 
+func setRemoteUpstream(issueID, issueTitle, branchName string) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+	upstream, err := cmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if len(upstream) == 0 {
+		cmd = exec.Command("git", "push", "-u", "origin", branchName)
+		err = cmd.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 		createPR(issueID, issueTitle, branchName)
 	}
 }
@@ -145,7 +160,7 @@ func createPR(issueID, issueTitle, branchName string) {
 		log.Fatal(err)
 	}
 	if len(output) == 0 {
-		templatePath := filepath.Join(".github", "gh-jira_template.md")
+		templatePath := filepath.Join(".github", "gojira_pr_template.md")
 		title := fmt.Sprintf("%s: %s", issueID, issueTitle)
 		createPrCmd := exec.Command("gh", "pr", "create", "-d", "-t", title)
 		body := ""

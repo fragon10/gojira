@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -100,6 +101,11 @@ func createBranch(issueID, issueTitle string) {
 	sanitizedIssueTitle = strings.ToLower(sanitizedIssueTitle)
 
 	branchName := fmt.Sprintf("%s/%s", issueID, sanitizedIssueTitle)
+	parentcmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
+	parentSHA1, err := parentcmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if err := exec.Command("git", "rev-parse", "--verify", branchName).Run(); err != nil {
 		err = exec.Command("git", "switch", "-c", branchName).Run()
@@ -112,16 +118,16 @@ func createBranch(issueID, issueTitle string) {
 		}
 	}
 
-	createCommit(issueID, issueTitle, branchName)
+	createCommit(issueID, issueTitle, branchName, parentSHA1)
 }
 
-func createCommit(issueID, issueTitle, branchName string) {
+func createCommit(issueID string, issueTitle string, branchName string, parent []byte) {
 	cmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
 	output, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if len(output) == 0 {
+	if bytes.Equal(output, parent) {
 		cmd = exec.Command("git", "commit", "--allow-empty", "-m", EMPTY_COMMIT_MESSAGE, "--no-verify")
 		err = cmd.Run()
 		if err != nil {
@@ -174,19 +180,23 @@ func main() {
 		log.Fatal("Please provide a Jira Domain")
 	}
 
-	var boardID = "UTPR"                     // Utsikt - Presence Current Sprint.
-	var boardStatus = "'To Do'"              // Issue Status, must be in single quotes.
-	var issueFilter = "Software Engineering" // Issue Filter.
+	// var boardID = "UTPR"                     // Utsikt - Presence Current Sprint.
+	// var boardStatus = "'To Do'"              // Issue Status, must be in single quotes.
+	// var issueFilter = "Software Engineering" // Issue Filter.
 
-	jiraIssues := getJiraIssues(jiraAPIToken, jiraDomain, boardID, boardStatus)
-	if len(jiraIssues) == 0 {
-		log.Fatal("No Jira issues with 'To Do' status found.")
-	}
+	// jiraIssues := getJiraIssues(jiraAPIToken, jiraDomain, boardID, boardStatus)
+	// if len(jiraIssues) == 0 {
+	// 	log.Fatal("No Jira issues with 'To Do' status found.")
+	// }
 
-	issueID, issueSummary := selectJiraIssue(jiraIssues, issueFilter)
-	if issueID == "" || issueSummary == "" {
-		log.Fatal("No Jira issue selected. Manual entry is required.")
-	}
+	// issueID, issueSummary := selectJiraIssue(jiraIssues, issueFilter)
+	// if issueID == "" || issueSummary == "" {
+	// 	log.Fatal("No Jira issue selected. Manual entry is required.")
+	// }
 
-	createBranch(issueID, issueSummary)
+	issueID := "TEST-1"
+	issueTitle := "Test"
+	// branchName := "TEST-1/test"
+
+	createBranch(issueID, issueTitle)
 }

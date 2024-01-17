@@ -143,7 +143,7 @@ func setRemoteUpstream(issueID, issueTitle, branchName string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if len(upstream) == 0 {
+	if strings.TrimSpace(string(upstream)) != "origin/"+branchName {
 		cmd = exec.Command("git", "push", "-u", "origin", branchName)
 		err = cmd.Run()
 		if err != nil {
@@ -159,7 +159,7 @@ func createPR(issueID, issueTitle, branchName string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if len(output) == 0 {
+	if strings.TrimSpace(string(output)) == "" {
 		templatePath := filepath.Join(".github", "gojira_pr_template.md")
 		title := fmt.Sprintf("%s: %s", issueID, issueTitle)
 		createPrCmd := exec.Command("gh", "pr", "create", "-d", "-t", title)
@@ -209,8 +209,8 @@ func main() {
 	// 	log.Fatal("No Jira issue selected. Manual entry is required.")
 	// }
 
-	issueID := "TEST-1"
-	issueTitle := "Test"
+	issueID := "TEST-3"
+	issueTitle := "Test3"
 	// branchName := "TEST-1/test"
 
 	createBranch(issueID, issueTitle)

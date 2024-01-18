@@ -92,6 +92,8 @@ func selectJiraIssue(issues []JiraIssue, iFilter string) (string, string) {
 }
 
 func createBranch(issueID, issueTitle string) {
+	log.Println("Creating branch for issue: " + issueID)
+
 	sanitizedIssueTitle := strings.ReplaceAll(issueTitle, " ", "-")
 	reg, err := regexp.Compile("[^a-zA-Z0-9-]+")
 	if err != nil {
@@ -111,55 +113,66 @@ func createBranch(issueID, issueTitle string) {
 		err = exec.Command("git", "switch", "-c", branchName).Run()
 		if err != nil {
 			log.Fatal(err)
+
 		}
+		log.Println("Branch created: " + branchName)
+
 	} else {
 		if err := exec.Command("git", "switch", branchName).Run(); err != nil {
 			log.Fatal(err)
 		}
+
+		log.Println("Branch switched: " + branchName)
 	}
 
 	createCommit(issueID, issueTitle, branchName, parentSHA1)
 }
 
 func createCommit(issueID string, issueTitle string, branchName string, parent []byte) {
+	log.Println("Creating commit for issue: " + issueID)
+
 	cmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
-	output, err := cmd.Output()
+	current, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if bytes.Equal(output, parent) {
+	if bytes.Equal(current, parent) {
 		cmd = exec.Command("git", "commit", "--allow-empty", "-m", EMPTY_COMMIT_MESSAGE, "--no-verify")
 		err = cmd.Run()
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		log.Println("Empty commit created: " + EMPTY_COMMIT_MESSAGE)
+
 		setRemoteUpstream(issueID, issueTitle, branchName)
 	}
 }
 
 func setRemoteUpstream(issueID, issueTitle, branchName string) {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
-	upstream, err := cmd.Output()
+	log.Println("Setting remote upstream for branch: " + branchName)
+	cmd := exec.Command("git", "push", "-u", "origin", branchName)
+	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if strings.TrimSpace(string(upstream)) != "origin/"+branchName {
-		cmd = exec.Command("git", "push", "-u", "origin", branchName)
-		err = cmd.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
-		createPR(issueID, issueTitle, branchName)
-	}
+
+	log.Println("Remote upstream set: " + "origin/" + branchName)
+
+	createPR(issueID, issueTitle, branchName)
 }
 
 func createPR(issueID, issueTitle, branchName string) {
+	log.Println("Checking for pull request for issue: " + issueID)
+
 	cmd := exec.Command("gh", "pr", "list", "--base", branchName)
 	output, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if strings.TrimSpace(string(output)) == "" {
+		log.Println("Creating pull request for issue: " + issueID)
+
 		templatePath := filepath.Join(".github", "gojira_pr_template.md")
 		title := fmt.Sprintf("%s: %s", issueID, issueTitle)
 		createPrCmd := exec.Command("gh", "pr", "create", "-d", "-t", title)
@@ -181,6 +194,8 @@ func createPR(issueID, issueTitle, branchName string) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		log.Println("Pull request created: " + title)
 	}
 }
 
@@ -195,23 +210,24 @@ func main() {
 		log.Fatal("Please provide a Jira Domain")
 	}
 
-	// var boardID = "UTPR"                     // Utsikt - Presence Current Sprint.
-	// var boardStatus = "'To Do'"              // Issue Status, must be in single quotes.
-	// var issueFilter = "Software Engineering" // Issue Filter.
+	var boardID = "UTPR"                     // Utsikt - Presence Current Sprint.
+	var boardStatus = "'To Do'"              // Issue Status, must be in single quotes.
+	var issueFilter = "Software Engineering" // Issue Filter.
 
-	// jiraIssues := getJiraIssues(jiraAPIToken, jiraDomain, boardID, boardStatus)
-	// if len(jiraIssues) == 0 {
-	// 	log.Fatal("No Jira issues with 'To Do' status found.")
-	// }
+	jiraIssues := getJiraIssues(jiraAPIToken, jiraDomain, boardID, boardStatus)
+	if len(jiraIssues) == 0 {
+		log.Fatal("No Jira issues with 'To Do' status found.")
+	}
 
-	// issueID, issueSummary := selectJiraIssue(jiraIssues, issueFilter)
-	// if issueID == "" || issueSummary == "" {
-	// 	log.Fatal("No Jira issue selected. Manual entry is required.")
-	// }
+	issueID, issueSummary := selectJiraIssue(jiraIssues, issueFilter)
+	if issueID == "" || issueSummary == "" {
+		log.Fatal("No Jira issue selected. Manual entry is required.")
+	}
 
-	issueID := "TEST-3"
-	issueTitle := "Test3"
+	// issueID := "TEST-5"
+	// issueTitle := "Test5"
 	// branchName := "TEST-1/test"
 
-	createBranch(issueID, issueTitle)
+	// createBranch(issueID, issueTitle)
+	createBranch(issueID, issueSummary)
 }

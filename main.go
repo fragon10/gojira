@@ -182,7 +182,7 @@ func createPR(issueID, issueTitle, branchName string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			body = strings.Replace(string(template), "{{ISSUE_ID}}", issueID, -1)
+			body = strings.ReplaceAll(string(template), "{{ISSUE_ID}}", issueID)
 			createPrCmd.Args = append(createPrCmd.Args, "-b", body)
 		} else {
 			createPrCmd.Args = append(createPrCmd.Args, "-b", "")
